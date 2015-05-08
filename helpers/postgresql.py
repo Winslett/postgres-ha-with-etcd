@@ -9,16 +9,19 @@ logger = logging.getLogger(__name__)
 
 class Postgresql:
 
-    def __init__(self, config):
+    def __init__(self, config, aws_host_address=None):
         self.name = config["name"]
         self.host, self.port = config["listen"].split(":")
         self.data_dir = config["data_dir"]
         self.replication = config["replication"]
+        self.superuser = config.get('superuser')
+        self.admin = config.get('admin')
 
         self.config = config
 
         self.cursor_holder = None
-        self.connection_string = "postgres://%s:%s@%s:%s/postgres" % (self.replication["username"], self.replication["password"], self.host, self.port)
+        connection_host = aws_host_address or self.host
+        self.connection_string = "postgres://%s:%s@%s:%s/postgres" % (self.replication["username"], self.replication["password"], connection_host, self.port)
 
         self.conn = None
 
@@ -146,6 +149,10 @@ class Postgresql:
         f = open("%s/pg_hba.conf" % self.data_dir, "a")
         f.write("host replication %(username)s %(network)s md5" %
                 {"username": self.replication["username"], "network": self.replication["network"]})
+        # allow TCP connections from the host's own address
+        f.write("\nhost postgres postgres samehost trust\n")
+        # allow TCP connections from the rest of the world with a password
+        f.write("\nhost all all 0.0.0.0/0 md5\n")
         f.close()
 
     def write_recovery_conf(self, leader_hash):
@@ -179,6 +186,15 @@ recovery_target_timeline = 'latest'
 
     def create_replication_user(self):
         self.query("CREATE USER \"%s\" WITH REPLICATION ENCRYPTED PASSWORD '%s';" % (self.replication["username"], self.replication["password"]))
+
+    def create_connection_users(self):
+        if self.superuser:
+            if 'username' in self.superuser:
+                self.query("CREATE ROLE \"{0}\" LOGIN SUPERUSER PASSWORD '{1}';".format(self.superuser["username"], self.superuser["password"]))
+            else:
+                self.query("ALTER ROLE postgres PASSWORD '{0}';".format(self.superuser['password']))
+        if self.admin:
+            self.query("CREATE ROLE \"{0}\" LOGIN CREATEDB CREATEROLE PASSWORD '{1}';".format(self.admin["username"], self.admin["password"]))
 
     def xlog_position(self):
         return self.query("SELECT pg_last_xlog_replay_location();").fetchone()[0]
