@@ -1,0 +1,3 @@
+PyYAML
+psycopg2
+CherryPy>=3
