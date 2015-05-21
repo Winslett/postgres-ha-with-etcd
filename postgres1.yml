@@ -1,4 +1,5 @@
 loop_wait: 10
+healthcheck_port: 8009
 etcd:
   scope: batman
   ttl: 30
@@ -6,14 +7,24 @@ etcd:
 postgresql:
   name: postgresql1
   listen: 127.0.0.1:5433
+  connect_address: 127.0.0.1:5433
   data_dir: data/postgresql1
   maximum_lag_on_failover: 1048576 # 1 megabyte in bytes
   replication:
     username: replicator
     password: rep-pass
     network: 127.0.0.1/32
+  superuser:
+    password: zalando
+  admin:
+    username: admin
+    password: admin
   #recovery_conf:
     #restore_command: cp ../wal_archive/%f %p
+  wal_e:
+    env_dir: /home/postgres/etc/wal-e.d/env
+    threshold_megabytes: 10240
+    threshold_backup_size_percentage: 30
   parameters:
     archive_mode: "on"
     wal_level: hot_standby
