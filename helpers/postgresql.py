@@ -1,10 +1,13 @@
-import os, psycopg2, re, time
+import os
+import psycopg2
+import re
+import time
 import logging
-
 from urlparse import urlparse
 
 
 logger = logging.getLogger(__name__)
+
 
 class Postgresql:
 
@@ -17,7 +20,12 @@ class Postgresql:
         self.config = config
 
         self.cursor_holder = None
-        self.connection_string = "postgres://%s:%s@%s:%s/postgres" % (self.replication["username"], self.replication["password"], self.host, self.port)
+        self.connection_string = "postgres://%s:%s@%s:%s/postgres" % (
+            self.replication["username"],
+            self.replication["password"],
+            self.host,
+            self.port
+            )
 
         self.conn = None
 
@@ -35,21 +43,25 @@ class Postgresql:
         except Exception as e:
             logger.error("Error disconnecting: %s" % e)
 
-    def query(self, sql):
-        max_attempts = 0
+    def query(self, sql, max_attempts=3):
+        attempts = 0
+
         while True:
             try:
                 self.cursor().execute(sql)
-                break
-            except psycopg2.OperationalError as e:
+            except psycopg2.OperationalError:
                 if self.conn:
                     self.disconnect()
                 self.cursor_holder = None
-                if max_attempts > 4:
-                    raise e
-                max_attempts += 1
-                time.sleep(5)
-        return self.cursor()
+                if attempts <= max_attempts:
+                    logger.info("pg query: %s of %s attempts" % (attempts, max_attempts))
+                    attempts += 1
+                    time.sleep(5)
+                    continue
+                else:
+                    raise
+            else:
+                return self.cursor()
 
     def data_directory_empty(self):
         return not os.path.exists(self.data_dir) or os.listdir(self.data_dir) == []
