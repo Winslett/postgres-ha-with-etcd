@@ -1,22 +1,25 @@
 #!/usr/bin/env python
 
-import sys, os, yaml, time, urllib2, atexit
+import sys
+import yaml
+import time
+import urllib2
+import atexit
 import logging
-
 from helpers.etcd import Etcd
 from helpers.postgresql import Postgresql
 from helpers.ha import Ha
 
 
-logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.DEBUG)
 
-f = open(sys.argv[1], "r")
-config = yaml.load(f.read())
-f.close()
+with open(sys.argv[1], "r") as fp:
+    config = yaml.load(fp)
 
 etcd = Etcd(config["etcd"])
 postgresql = Postgresql(config["postgresql"])
 ha = Ha(postgresql, etcd)
+
 
 # stop postgresql on script exit
 def stop_postgresql():

@@ -1,9 +1,12 @@
-import urllib2, json, os, time
+import urllib2
+import json
+import time
 import logging
 from urllib import urlencode
 import helpers.errors
 
 logger = logging.getLogger(__name__)
+
 
 class Etcd:
     def __init__(self, config):
@@ -11,31 +14,52 @@ class Etcd:
         self.host = config["host"]
         self.ttl = config["ttl"]
 
-    def get_client_path(self, path, max_attempts=1):
+    def get_client_path(self, path, max_attempts=3):
         attempts = 0
         response = None
 
         while True:
             try:
                 response = urllib2.urlopen(self.client_url(path)).read()
-                break
-            except (urllib2.HTTPError, urllib2.URLError) as e:
-                attempts += 1
-                if attempts < max_attempts:
-                    logger.info("Failed to return %s, trying again. (%s of %s)" % (path, attempts, max_attempts))
+            except (urllib2.HTTPError, urllib2.URLError) as exc:
+                if attempts <= max_attempts:
+                    logger.info(
+                        "Failed to return %s, trying again. (%s of %s)" % (
+                            path, attempts, max_attempts)
+                        )
+                    logger.exception(exc)
+                    attempts += 1
                     time.sleep(3)
+                    continue
                 else:
-                    raise e
-        try:
-            return json.loads(response)
-        except ValueError:
-            return response
+                    raise
+            else:
+                try:
+                    return json.loads(response)
+                except ValueError:
+                    return response
 
-    def put_client_path(self, path, data):
-        opener = urllib2.build_opener(urllib2.HTTPHandler)
-        request = urllib2.Request(self.client_url(path), data=urlencode(data).replace("false", "False"))
-        request.get_method = lambda: 'PUT'
-        opener.open(request)
+    def put_client_path(self, path, data, max_attempts=3):
+        attempts = 0
+
+        while True:
+            try:
+                opener = urllib2.build_opener(urllib2.HTTPHandler)
+                request = urllib2.Request(
+                    self.client_url(path), data=urlencode(data).replace("false", "False"))
+                request.get_method = lambda: 'PUT'
+                opener.open(request)
+            except urllib2.HTTPError as exc:
+                if attempts <= max_attempts:
+                    logger.info("%s of %s attempts" % (attempts, max_attempts))
+                    logger.exception(exc)
+                    attempts += 1
+                    time.sleep(3)
+                    continue
+                else:
+                    raise
+            else:
+                return
 
     def client_url(self, path):
         return "http://%s/v2/keys/service/%s%s" % (self.host, self.scope, path)
@@ -69,11 +93,11 @@ class Etcd:
         self.put_client_path("/members/%s" % member, {"value": connection_string, "ttl": self.ttl})
 
     def take_leader(self, value):
-        return self.put_client_path("/leader", {"value": value, "ttl": self.ttl}) == None
+        return self.put_client_path("/leader", {"value": value, "ttl": self.ttl}) is None
 
     def attempt_to_acquire_leader(self, value):
         try:
-            return self.put_client_path("/leader", {"value": value, "ttl": self.ttl, "prevExist": False}) == None
+            return self.put_client_path("/leader", {"value": value, "ttl": self.ttl, "prevExist": False}) is None
         except urllib2.HTTPError as e:
             if e.code == 412:
                 logger.info("Could not take out TTL lock: %s" % e)
@@ -107,15 +131,12 @@ class Etcd:
             return False
 
     def am_i_leader(self, value):
-        #try:
-           reponse = self.get_client_path("/leader")
-           logger.info("Lock owner: %s; I am %s" % (reponse["node"]["value"], value))
-           return reponse["node"]["value"] == value
-        #except Exception as e:
-            #return False
+        reponse = self.get_client_path("/leader")
+        logger.info("Lock owner: %s; I am %s" % (reponse["node"]["value"], value))
+        return reponse["node"]["value"] == value
 
     def race(self, path, value):
         try:
-            return self.put_client_path(path, {"prevExist": False, "value": value}) == None
+            return self.put_client_path(path, {"prevExist": False, "value": value}) is None
         except urllib2.HTTPError:
             return False
