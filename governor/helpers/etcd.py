@@ -1,7 +1,7 @@
 import urllib2, json, os, time, base64
 import logging
 from urllib import urlencode
-import helpers.errors
+from governor.helpers import errors
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,11 @@
 Compose runs a a [Postgresql as a service platform](https://www.compose.io/postgresql), which is highly-available from creation.  This is a coded example from our prior blog post: [High Availability for PostgreSQL, Batteries Not Included](https://blog.compose.io/high-availability-for-postgresql-batteries-not-included/).
 
 ## Getting Started
-To get started, do the following from different terminals:
+To get started, you'll need to follow these steps:
+1. clone this repo: `git clone https://github.com/compose/governor.git`
+2. (optional) create a virtualenv: `mkvirtualenv governor`
+3. install: `python setup.py install`
+4. run the following from different terminals:
 
 ```
 > etcd --data-dir=data/etcd
@@ -68,7 +72,7 @@ For an example file, see `postgres0.yml`.  Below is an explanation of settings:
 
 ## Replication choices
 
-Governor uses Postgres' streaming replication.  By default, this replication is asynchronous.  For more information, see the [Postgres documentation on streaming replication](http://www.postgresql.org/docs/current/static/warm-standby.html#STREAMING-REPLICATION). 
+Governor uses Postgres' streaming replication.  By default, this replication is asynchronous.  For more information, see the [Postgres documentation on streaming replication](http://www.postgresql.org/docs/current/static/warm-standby.html#STREAMING-REPLICATION).
 
 Governor's asynchronous replication configuration allows for `maximum_lag_on_failover` settings. This setting ensures failover will not occur if a follower is more than a certain number of bytes behind the follower.  This setting should be increased or decreased based on business requirements.
 

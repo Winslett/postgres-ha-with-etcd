@@ -1,16 +1,11 @@
 #!/usr/bin/env python
-
 import sys, os, yaml, time, urllib2, atexit
+import argparse
 import logging
 
 from helpers.etcd import Etcd
 from helpers.postgresql import Postgresql
 from helpers.ha import Ha
-
-LOG_LEVEL = logging.DEBUG if os.getenv('DEBUG', None) else logging.INFO
-
-logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=LOG_LEVEL)
-
 
 # stop postgresql on script exit
 def stop_postgresql(postgresql):
@@ -90,10 +85,3 @@ def run(config):
             logging.info("Lost connection to etcd, setting no leader and waiting on etcd")
             postgresql.follow_no_leader()
             wait_for_etcd("running in readonly mode; cannot participate in cluster HA without etcd", etcd, postgresql)
-
-if __name__ == "__main__":
-    f = open(sys.argv[1], "r")
-    config = yaml.load(f.read())
-    f.close()
-
-    run(config)

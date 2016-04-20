@@ -2,7 +2,7 @@ import sys, time, re, urllib2, json, psycopg2
 import logging
 from base64 import b64decode
 
-import helpers.errors
+from governor.helpers import errors
 
 import inspect
 
