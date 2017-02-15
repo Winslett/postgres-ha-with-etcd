@@ -48,6 +48,7 @@ For an example file, see `postgres0.yml`.  Below is an explanation of settings:
   * *authentication*: optional if etcd is protected by HTTP basic auth
     * *username*: username for accessing etcd
     * *password*: password for accessing etcd
+  * *timeout*: timeout value for HTTP requests to etcd
 
 * *postgresql*
   * *use_unix_socket*: set to true if governor shall connect to postgres via local unix socket instead of TCP/IP
