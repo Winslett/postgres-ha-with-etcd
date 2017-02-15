@@ -8,6 +8,7 @@ etcd:
     # password: mypassword
   endpoint: http://localhost:4001
   timeout: 5
+  attempts: 1
 haproxy_status:
   listen: 127.0.0.1:15433
 postgresql:
