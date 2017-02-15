@@ -15,10 +15,12 @@ class Etcd:
             self.authentication = None
         self.ttl = config["ttl"]
         self.timeout = config["timeout"]
+        self.attempts = config["attempts"]
 
-    def get_client_path(self, path, max_attempts=1):
+    def get_client_path(self, path):
         attempts = 0
         response = None
+        max_attempts = self.attempts
 
         while True:
             try:
