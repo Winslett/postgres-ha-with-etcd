@@ -166,8 +166,7 @@ class Postgresql:
                 continue
         return True
 
-    def replication_slot_name(self):
-        member = os.environ.get("MEMBER")
+    def replication_slot_name(self, member):
         (member, _) = re.subn(r'[^a-z0-9]+', r'_', member)
         return member
 
@@ -183,7 +182,7 @@ class Postgresql:
 standby_mode = 'on'
 primary_slot_name = '%(recovery_slot)s'
 recovery_target_timeline = 'latest'
-""" % {"recovery_slot": self.name})
+""" % {"recovery_slot": self.replication_slot_name(self.name)})
         if leader_hash is not None:
             leader = urlparse(leader_hash["address"])
             f.write("""
